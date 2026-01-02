@@ -1,26 +1,170 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Import Minecraft font */
+@font-face {
+  font-family: 'Minecraft';
+  src: url('https://fonts.cdnfonts.com/s/15511/Minecraft.woff') format('woff');
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@font-face {
+  font-family: 'Minecraft-Bold';
+  src: url('https://fonts.cdnfonts.com/s/15511/Minecraft-Bold.woff') format('woff');
 }
 
-@media (prefers-color-scheme: dark) {
+@font-face {
+  font-family: 'Minecraft-Ten';
+  src: url('https://fonts.cdnfonts.com/s/15511/MinecraftTen.woff') format('woff');
+}
+
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --mc-grass: #7CBD6B;
+    --mc-dirt: #9C7C5A;
+    --mc-stone: #A0A0A0;
+    --mc-wood: #AB8B65;
+    --mc-water: #3A7EAA;
+    --mc-sky: #7EC0EE;
+  }
+  
+  body {
+    @apply bg-gradient-to-b from-mc-sky via-blue-100 to-emerald-50;
+    font-family: 'Minecraft', monospace;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+  
+  /* Pixel perfect scrollbar */
+  ::-webkit-scrollbar {
+    width: 16px;
+    image-rendering: pixelated;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-mc-stone border-2 border-black;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-mc-brown border-2 border-black;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-mc-dark-brown;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /* Minecraft UI Components */
+  .mc-button {
+    @apply relative font-minecraft text-sm md:text-base py-3 px-4 border-4 border-black 
+           bg-gradient-to-b from-mc-green to-mc-dark-green 
+           text-white text-center cursor-pointer
+           transition-all duration-150
+           hover:brightness-110 hover:scale-105
+           active:scale-95 active:brightness-90
+           disabled:opacity-50 disabled:cursor-not-allowed
+           pixelated;
+    text-shadow: 2px 2px 0 #000;
+    box-shadow: inset -4px -4px 0 rgba(0,0,0,0.2),
+                inset 4px 4px 0 rgba(255,255,255,0.2);
+  }
+  
+  .mc-button-secondary {
+    @apply bg-gradient-to-b from-mc-brown to-mc-dark-brown;
+  }
+  
+  .mc-button-danger {
+    @apply bg-gradient-to-b from-mc-red to-#A02020;
+  }
+  
+  .mc-button-success {
+    @apply bg-gradient-to-b from-mc-blue to-mc-dark-blue;
+  }
+  
+  .mc-card {
+    @apply bg-gradient-to-b from-gray-100 to-gray-200 
+           border-4 border-black p-4
+           transition-all duration-300
+           hover:shadow-2xl hover:scale-105
+           pixelated;
+    box-shadow: inset -4px -4px 0 rgba(0,0,0,0.1),
+                inset 4px 4px 0 rgba(255,255,255,0.1);
+  }
+  
+  .mc-input {
+    @apply font-minecraft border-4 border-black px-4 py-3 
+           bg-white text-black placeholder-gray-500
+           focus:outline-none focus:border-mc-blue
+           transition-colors duration-200
+           pixelated;
+    box-shadow: inset 4px 4px 0 rgba(0,0,0,0.1);
+  }
+  
+  .mc-progress-bar {
+    @apply relative h-6 border-4 border-black overflow-hidden;
+    background: linear-gradient(to bottom, #8B7355, #6B4F32);
+  }
+  
+  .mc-progress-fill {
+    @apply h-full bg-gradient-to-r from-mc-green via-#5CAD4A to-mc-dark-green
+           transition-all duration-500 ease-out;
+    box-shadow: inset 2px 0 0 rgba(255,255,255,0.3);
+  }
+  
+  .mc-modal {
+    @apply fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50;
+  }
+  
+  .mc-modal-content {
+    @apply bg-gradient-to-b from-gray-100 to-gray-200 
+           border-4 border-black p-6 max-w-2xl w-full
+           pixelated;
+    box-shadow: 0 0 0 4px #8B7355,
+                0 0 0 8px #6B4F32,
+                0 0 30px rgba(0,0,0,0.5);
+  }
+  
+  .pixelated {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+  
+  /* Minecraft block patterns */
+  .mc-block-grass {
+    background: linear-gradient(45deg, var(--mc-grass) 25%, #8CAF7B 25%, #8CAF7B 50%, 
+                var(--mc-grass) 50%, var(--mc-grass) 75%, #8CAF7B 75%, #8CAF7B);
+    background-size: 8px 8px;
+  }
+  
+  .mc-block-dirt {
+    background: linear-gradient(45deg, var(--mc-dirt) 25%, #7C5C3A 25%, #7C5C3A 50%, 
+                var(--mc-dirt) 50%, var(--mc-dirt) 75%, #7C5C3A 75%, #7C5C3A);
+    background-size: 8px 8px;
+  }
+  
+  .mc-block-stone {
+    background: linear-gradient(45deg, var(--mc-stone) 25%, #808080 25%, #808080 50%, 
+                var(--mc-stone) 50%, var(--mc-stone) 75%, #808080 75%, #808080);
+    background-size: 8px 8px;
+  }
+  
+  .mc-block-wood {
+    background: linear-gradient(45deg, var(--mc-wood) 25%, #9B7B55 25%, #9B7B55 50%, 
+                var(--mc-wood) 50%, var(--mc-wood) 75%, #9B7B55 75%, #9B7B55);
+    background-size: 8px 8px;
+  }
+  
+  /* 8-bit heart */
+  .mc-heart {
+    @apply w-6 h-6 inline-block;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23ff6b6b' d='M8,14 C8,14 1,9 1,5 C1,2 3,1 5,1 C7,1 8,3 8,3 C8,3 9,1 11,1 C13,1 15,2 15,5 C15,9 8,14 8,14 Z'/%3E%3C/svg%3E") no-repeat;
+    image-rendering: pixelated;
+  }
+  
+  .mc-heart-empty {
+    @apply w-6 h-6 inline-block;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23444444' d='M8,14 C8,14 1,9 1,5 C1,2 3,1 5,1 C7,1 8,3 8,3 C8,3 9,1 11,1 C13,1 15,2 15,5 C15,9 8,14 8,14 Z'/%3E%3C/svg%3E") no-repeat;
+    image-rendering: pixelated;
+  }
 }
