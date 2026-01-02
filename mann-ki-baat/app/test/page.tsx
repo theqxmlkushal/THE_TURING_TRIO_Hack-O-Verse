@@ -7,6 +7,7 @@ import StepCard from '@/components/StepCard'
 import MinecraftButton from '@/components/MinecraftButton'
 import ProgressBar from '@/components/ProgressBar'
 import MinecraftModal from '@/components/MinecraftModal'
+import TextAnalysisModal from '@/components/TextAnalysisModal'
 import { useSounds } from '@/lib/sounds'
 
 type StepStatus = 'locked' | 'unlocked' | 'completed'
@@ -23,7 +24,7 @@ interface AssessmentStep {
 
 export default function TestPage() {
   const [showInfoModal, setShowInfoModal] = useState(false)
-  const [showWarningModal, setShowWarningModal] = useState(false)
+  const [showTextAnalysisModal, setShowTextAnalysisModal] = useState(false)
   const { play } = useSounds()
 
   // Initialize steps with state
@@ -58,52 +59,19 @@ export default function TestPage() {
     play('game_start')
     
     if (step === 1) {
-      // Show warning for first step
-      setShowWarningModal(true)
-    } else {
-      // For demo purposes
-      alert(`Starting Step ${step}...\n\nThis is a demo. In a real implementation, this would open the assessment interface.`)
-      
-      // Update status using state
-      setAssessmentSteps(prevSteps => {
-        const updatedSteps = [...prevSteps]
-        const updatedStep = step - 1
-        
-        // Mark current step as completed
-        updatedSteps[updatedStep] = {
-          ...updatedSteps[updatedStep],
-          status: 'completed'
-        }
-        
-        // Unlock next step if exists
-        if (step < 3) {
-          updatedSteps[step] = {
-            ...updatedSteps[step],
-            status: 'unlocked'
-          }
-        }
-        
-        return updatedSteps
-      })
+      // Open text analysis modal for step 1
+      setShowTextAnalysisModal(true)
+    } else if (step === 2) {
+      // Voice analysis (to be implemented)
+      alert(`Starting Voice Analysis...\n\nThis feature will be available soon!`)
+    } else if (step === 3) {
+      // Video analysis (to be implemented)
+      alert(`Starting Video Analysis...\n\nThis feature will be available soon!`)
     }
   }
 
-  const handleBeginAll = () => {
+  const handleTextAnalysisComplete = () => {
     play('achievement')
-    setShowInfoModal(true)
-  }
-
-  const handleConfirmStart = () => {
-    play('game_start')
-    setShowInfoModal(false)
-    
-    // Start the first step
-    setShowWarningModal(true)
-  }
-
-  const handleConfirmTextAnalysis = () => {
-    play('success')
-    setShowWarningModal(false)
     
     // Mark step 1 as completed and unlock step 2
     setAssessmentSteps(prevSteps => {
@@ -118,8 +86,19 @@ export default function TestPage() {
       }
       return updatedSteps
     })
+  }
+
+  const handleBeginAll = () => {
+    play('achievement')
+    setShowInfoModal(true)
+  }
+
+  const handleConfirmStart = () => {
+    play('game_start')
+    setShowInfoModal(false)
     
-    alert('Text Analysis Completed!\n\nStep 2 (Voice Analysis) is now unlocked!')
+    // Start the first step
+    setShowTextAnalysisModal(true)
   }
 
   const progress = assessmentSteps.filter(step => step.status === 'completed').length / 3 * 100
@@ -258,7 +237,7 @@ export default function TestPage() {
               </div>
               <div className="font-minecraft text-mc-green">STEP 1</div>
             </div>
-            <p className="text-sm">Click any assessment type to begin</p>
+            <p className="text-sm">Click "Start" on Text Analysis to begin</p>
           </div>
           <div className="border-2 border-gray-300 p-4 bg-white">
             <div className="flex items-center gap-2 mb-2">
@@ -402,55 +381,12 @@ export default function TestPage() {
         </div>
       </MinecraftModal>
 
-      {/* Warning Modal */}
-      <MinecraftModal
-        isOpen={showWarningModal}
-        onClose={() => setShowWarningModal(false)}
-        title="Ready to Begin?"
-        type="confirm"
-        confirmText="Yes, Start"
-        cancelText="Not Now"
-        onConfirm={handleConfirmTextAnalysis}
-      >
-        <div className="space-y-4">
-          <div className="flex items-center justify-center">
-            <div className="p-4 bg-gradient-to-b from-mc-green/20 to-mc-dark-green/20 border-2 border-mc-green rounded-full">
-              <span className="text-3xl">📝</span>
-            </div>
-          </div>
-          
-          <div className="text-center">
-            <h3 className="font-minecraft-bold text-xl text-gray-800 mb-2">
-              Text Based Sentimental Analysis
-            </h3>
-            
-            <p className="text-gray-600">
-              You're about to start the text analysis. You'll be asked to:
-            </p>
-          </div>
-          
-          <ul className="space-y-2 text-sm text-gray-700">
-            <li className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-mc-green rounded-full"></div>
-              <span>Write about your recent thoughts and feelings</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-mc-green rounded-full"></div>
-              <span>Answer some reflective questions</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-mc-green rounded-full"></div>
-              <span>Describe your current emotional state</span>
-            </li>
-          </ul>
-          
-          <div className="bg-gradient-to-r from-mc-green/10 to-mc-blue/10 border-2 border-mc-green/30 p-3 rounded">
-            <p className="text-sm text-gray-600 text-center">
-              <span className="font-semibold">Remember:</span> All responses are confidential and encrypted.
-            </p>
-          </div>
-        </div>
-      </MinecraftModal>
+      {/* Text Analysis Modal */}
+      <TextAnalysisModal
+        isOpen={showTextAnalysisModal}
+        onClose={() => setShowTextAnalysisModal(false)}
+        onComplete={handleTextAnalysisComplete}
+      />
     </div>
   )
 }

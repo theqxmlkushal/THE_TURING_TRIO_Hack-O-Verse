@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Volume2, VolumeX, Volume1, Music } from 'lucide-react'
 import { useAudio } from '@/hooks/useAudio'
 
@@ -11,6 +11,8 @@ interface AudioToggleProps {
 export default function AudioToggle({ position = 'bottom-right' }: AudioToggleProps) {
   const [showVolume, setShowVolume] = useState(false)
   const [showVisualizer, setShowVisualizer] = useState(false)
+  const [isHovering, setIsHovering] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
   
   const { 
     isPlaying, 
@@ -27,6 +29,43 @@ export default function AudioToggle({ position = 'bottom-right' }: AudioTogglePr
 
   // Fallback audio sources if primary fails
   const fallbackAudioSrc = '/audio/minecraft-ambient.ogg'
+
+  // Handle hover for entire component
+  useEffect(() => {
+    const handleMouseEnter = () => setIsHovering(true)
+    const handleMouseLeave = (e: MouseEvent) => {
+      if (!containerRef.current?.contains(e.relatedTarget as Node)) {
+        setIsHovering(false)
+        if (!showVisualizer) {
+          setShowVolume(false)
+        }
+      }
+    }
+
+    const container = containerRef.current
+    if (container) {
+      container.addEventListener('mouseenter', handleMouseEnter)
+      container.addEventListener('mouseleave', handleMouseLeave)
+    }
+
+    return () => {
+      if (container) {
+        container.removeEventListener('mouseenter', handleMouseEnter)
+        container.removeEventListener('mouseleave', handleMouseLeave)
+      }
+    }
+  }, [showVisualizer])
+
+  // Auto-show volume when hovering over button area
+  useEffect(() => {
+    if (isHovering) {
+      setShowVolume(true)
+    } else if (!showVisualizer) {
+      // Small delay to allow for clicking on the volume slider
+      const timer = setTimeout(() => setShowVolume(false), 300)
+      return () => clearTimeout(timer)
+    }
+  }, [isHovering, showVisualizer])
 
   // Audio visualization effect
   useEffect(() => {
@@ -97,7 +136,10 @@ export default function AudioToggle({ position = 'bottom-right' }: AudioTogglePr
   }
 
   return (
-    <div className={`fixed ${positionClasses[position]} z-50 flex flex-col items-end gap-3`}>
+    <div 
+      ref={containerRef}
+      className={`fixed ${positionClasses[position]} z-50 flex flex-col items-end gap-3`}
+    >
       {/* Error message */}
       {error && (
         <div className="bg-red-500/90 border-2 border-black px-3 py-2 animate-block-place">
@@ -114,7 +156,10 @@ export default function AudioToggle({ position = 'bottom-right' }: AudioTogglePr
 
       {/* Volume Control Panel */}
       {showVolume && (
-        <div className="bg-gradient-to-b from-mc-brown to-mc-dark-brown border-4 border-black p-4 mb-2 animate-block-place shadow-2xl">
+        <div 
+          className="bg-gradient-to-b from-mc-brown to-mc-dark-brown border-4 border-black p-4 mb-2 animate-block-place shadow-2xl"
+          onMouseEnter={() => setIsHovering(true)}
+        >
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -162,7 +207,10 @@ export default function AudioToggle({ position = 'bottom-right' }: AudioTogglePr
 
       {/* Audio Visualizer Canvas */}
       {showVisualizer && (
-        <div className="mb-2 bg-black/50 border-4 border-mc-green p-2 animate-block-place">
+        <div 
+          className="mb-2 bg-black/50 border-4 border-mc-green p-2 animate-block-place"
+          onMouseEnter={() => setIsHovering(true)}
+        >
           <canvas
             id="audio-visualizer"
             width="120"
@@ -185,10 +233,7 @@ export default function AudioToggle({ position = 'bottom-right' }: AudioTogglePr
           {/* Main Button */}
           <button
             onClick={togglePlay}
-            onMouseEnter={() => setShowVolume(true)}
-            onMouseLeave={() => {
-              if (!showVisualizer) setShowVolume(false)
-            }}
+            onMouseEnter={() => setIsHovering(true)}
             disabled={isLoading}
             className={`
               relative w-16 h-16 flex items-center justify-center
@@ -241,36 +286,7 @@ export default function AudioToggle({ position = 'bottom-right' }: AudioTogglePr
             )}
           </button>
         </div>
-
-        {/* Tooltip */}
-        <div className="absolute bottom-full right-0 mb-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-          <div className="relative">
-            {/* Tooltip Arrow */}
-            <div className="absolute top-full right-6 -mt-1 border-4 border-transparent border-t-black"></div>
-            
-            {/* Tooltip Content */}
-            <div className="bg-black/95 border-2 border-mc-green px-4 py-2 rounded">
-              <div className="font-minecraft text-white text-xs text-center whitespace-nowrap">
-                <div className="text-mc-yellow">MINECRAFT AMBIENT</div>
-                <div className="text-gray-300 mt-1">
-                  {isPlaying ? 'Click to mute' : 'Click to play'}
-                </div>
-                <div className="text-gray-400 text-[10px] mt-1">
-                  Volume: {Math.round(volume * 100)}%
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
-
-      {/* Audio Visualizer (Hidden Canvas for Animation) */}
-      <canvas
-        id="audio-visualizer"
-        className="hidden"
-        width="120"
-        height="120"
-      />
     </div>
   )
 }

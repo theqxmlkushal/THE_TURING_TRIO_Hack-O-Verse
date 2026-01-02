@@ -73,7 +73,7 @@ export default function RootLayout({
                         ))}
                       </div>
                       <p className="font-minecraft text-white/60 text-xs">
-                        © 2024 Mann ki Baat. All rights reserved.
+                        © 2026 Mann ki Baat. All rights reserved.
                       </p>
                     </div>
                     
