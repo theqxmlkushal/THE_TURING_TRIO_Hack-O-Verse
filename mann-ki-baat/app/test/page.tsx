@@ -9,38 +9,50 @@ import ProgressBar from '@/components/ProgressBar'
 import MinecraftModal from '@/components/MinecraftModal'
 import { useSounds } from '@/lib/sounds'
 
+type StepStatus = 'locked' | 'unlocked' | 'completed'
+type StepType = 'text' | 'voice' | 'video'
+
+interface AssessmentStep {
+  step: number
+  title: string
+  description: string
+  type: StepType
+  status: StepStatus
+  estimatedTime: string
+}
+
 export default function TestPage() {
-  const [currentStep, setCurrentStep] = useState<'locked' | 'unlocked' | 'completed'>('unlocked')
   const [showInfoModal, setShowInfoModal] = useState(false)
   const [showWarningModal, setShowWarningModal] = useState(false)
   const { play } = useSounds()
 
-  const assessmentSteps = [
+  // Initialize steps with state
+  const [assessmentSteps, setAssessmentSteps] = useState<AssessmentStep[]>([
     {
       step: 1,
       title: 'Text Based Sentimental Analysis',
       description: 'Share your thoughts and feelings through writing. Our AI analyzes your text to understand your emotional state and provides personalized insights. This step helps identify patterns in your thinking.',
-      type: 'text' as const,
-      status: 'unlocked' as const,
+      type: 'text',
+      status: 'unlocked',
       estimatedTime: '5-7 minutes'
     },
     {
       step: 2,
       title: 'Voice Based Sentimental Analysis',
       description: 'Speak your mind in a safe space. Voice analysis helps detect emotional tones and patterns that text might miss. We analyze pitch, tone, and speech patterns to understand your emotional state.',
-      type: 'voice' as const,
-      status: 'locked' as const,
+      type: 'voice',
+      status: 'locked',
       estimatedTime: '8-10 minutes'
     },
     {
       step: 3,
       title: 'Video Based Sentimental Analysis',
       description: 'Optional video recording for comprehensive analysis of facial expressions and vocal patterns together. This provides the most complete picture of your emotional wellbeing.',
-      type: 'video' as const,
-      status: 'locked' as const,
+      type: 'video',
+      status: 'locked',
       estimatedTime: '10-12 minutes'
     }
-  ]
+  ])
 
   const handleStepStart = (step: number) => {
     play('game_start')
@@ -52,18 +64,62 @@ export default function TestPage() {
       // For demo purposes
       alert(`Starting Step ${step}...\n\nThis is a demo. In a real implementation, this would open the assessment interface.`)
       
-      // Update status
-      const updatedStep = step - 1
-      assessmentSteps[updatedStep].status = 'completed'
-      if (step < 3) {
-        assessmentSteps[step].status = 'unlocked'
-      }
+      // Update status using state
+      setAssessmentSteps(prevSteps => {
+        const updatedSteps = [...prevSteps]
+        const updatedStep = step - 1
+        
+        // Mark current step as completed
+        updatedSteps[updatedStep] = {
+          ...updatedSteps[updatedStep],
+          status: 'completed'
+        }
+        
+        // Unlock next step if exists
+        if (step < 3) {
+          updatedSteps[step] = {
+            ...updatedSteps[step],
+            status: 'unlocked'
+          }
+        }
+        
+        return updatedSteps
+      })
     }
   }
 
   const handleBeginAll = () => {
     play('achievement')
     setShowInfoModal(true)
+  }
+
+  const handleConfirmStart = () => {
+    play('game_start')
+    setShowInfoModal(false)
+    
+    // Start the first step
+    setShowWarningModal(true)
+  }
+
+  const handleConfirmTextAnalysis = () => {
+    play('success')
+    setShowWarningModal(false)
+    
+    // Mark step 1 as completed and unlock step 2
+    setAssessmentSteps(prevSteps => {
+      const updatedSteps = [...prevSteps]
+      updatedSteps[0] = {
+        ...updatedSteps[0],
+        status: 'completed'
+      }
+      updatedSteps[1] = {
+        ...updatedSteps[1],
+        status: 'unlocked'
+      }
+      return updatedSteps
+    })
+    
+    alert('Text Analysis Completed!\n\nStep 2 (Voice Analysis) is now unlocked!')
   }
 
   const progress = assessmentSteps.filter(step => step.status === 'completed').length / 3 * 100
@@ -291,11 +347,7 @@ export default function TestPage() {
         title="Begin Your Journey"
         type="info"
         confirmText="Start Now"
-        onConfirm={() => {
-          play('game_start')
-          setShowInfoModal(false)
-          handleStepStart(1)
-        }}
+        onConfirm={handleConfirmStart}
       >
         <div className="space-y-4">
           <div className="text-center">
@@ -358,11 +410,7 @@ export default function TestPage() {
         type="confirm"
         confirmText="Yes, Start"
         cancelText="Not Now"
-        onConfirm={() => {
-          play('success')
-          setShowWarningModal(false)
-          alert('Starting Text Analysis...\n\nThis is a demo. In a real implementation, this would open the text analysis interface.')
-        }}
+        onConfirm={handleConfirmTextAnalysis}
       >
         <div className="space-y-4">
           <div className="flex items-center justify-center">

@@ -85,9 +85,9 @@ export class AudioManager {
     }
   }
 
-  playAmbient(src: string, volume: number = 0.3): AudioBufferSourceNode | null {
-    return this.playAudio(src, { volume, loop: true })
-  }
+  async playAmbient(src: string, volume: number = 0.3): Promise<AudioBufferSourceNode | null> {
+  return this.playAudio(src, { volume, loop: true })
+}
 
   stopAllAudio() {
     this.activeSources.forEach(source => {

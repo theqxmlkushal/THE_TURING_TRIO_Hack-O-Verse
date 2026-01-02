@@ -10,8 +10,8 @@ export default function Header() {
   const menuItems = [
     { label: 'HOME', href: '/', icon: Home },
     { label: 'ASSESSMENT', href: '/test', icon: ClipboardCheck },
-    { label: 'GAMES', href: '#games', icon: Gamepad2 },
-    { label: 'MINDFULNESS', href: '#exercises', icon: Brain },
+    //{ label: 'GAMES', href: '', icon: Gamepad2 },
+    //{ label: 'MINDFULNESS', href: '#exercises', icon: Brain },
     // { label: 'PROGRESS', href: '#progress', icon: Brain },
     // { label: 'COMMUNITY', href: '#community', icon: Brain },
   ]
