@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://mkb-text-based-analysis.onrender.com'
+const API_BASE_URL = 'https://mkb-text-based-analysis.onrender.com'
 
 export interface TextAnalysisRequest {
   text: string
