@@ -37,6 +37,18 @@ module.exports = {
         'item-spin': 'item-spin 2s linear infinite',
         'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
         'minecraft-load': 'minecraft-load 1s ease-in-out infinite',
+        'drift-very-slow': 'drift 120s linear infinite',
+        'drift-slow': 'drift 80s linear infinite',
+        'drift-medium': 'drift 60s linear infinite',
+        'drift-fast': 'drift 40s linear infinite',
+        'spin-slow': 'spin 20s linear infinite',
+        'spin-medium': 'spin 15s linear infinite',
+        'spin-fast': 'spin 10s linear infinite',
+        'float-slow': 'float 8s ease-in-out infinite',
+        'float-medium': 'float 6s ease-in-out infinite',
+        'float-fast': 'float 4s ease-in-out infinite',
+        'pulse-slow': 'pulse 3s ease-in-out infinite',
+        'pulse-glow': 'pulse 2s ease-in-out infinite',
       },
       keyframes: {
         'block-break': {

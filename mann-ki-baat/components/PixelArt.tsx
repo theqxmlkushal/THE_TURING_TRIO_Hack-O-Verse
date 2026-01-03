@@ -11,6 +11,14 @@ interface PixelArtProps {
   className?: string
 }
 
+/* -------------------- SAFE FALLBACK -------------------- */
+const fallbackPattern = {
+  size: 8,
+  pixels: Array.from({ length: 8 }, () => Array(8).fill(0)),
+  colors: ['#000000']
+}
+
+/* -------------------- PATTERNS -------------------- */
 const pixelPatterns = {
   heart: {
     size: 8,
@@ -124,8 +132,9 @@ const pixelPatterns = {
     ],
     colors: ['#FFFFFF', '#E0E0E0']
   }
-}
+} as const
 
+/* -------------------- COMPONENT -------------------- */
 export default function PixelArt({
   type,
   size = 64,
@@ -135,38 +144,36 @@ export default function PixelArt({
   className = ''
 }: PixelArtProps) {
   const [hover, setHover] = useState(false)
-  
-  const pattern = type === 'custom' 
-    ? { size: customPixels?.length || 8, pixels: customPixels || [], colors: colors || ['#000'] }
-    : pixelPatterns[type]
-  
-  const finalColors = colors || pattern.colors
-  const pixelSize = Math.floor(size / pattern.size)
 
-  const renderPixel = (value: number, rowIndex: number, colIndex: number) => {
-    if (value === 0) return null
-    
-    const color = finalColors[value - 1] || finalColors[0]
-    const isEdge = 
-      rowIndex === 0 || 
-      rowIndex === pattern.size - 1 || 
-      colIndex === 0 || 
-      colIndex === pattern.size - 1
-    
+  const pattern =
+    type === 'custom'
+      ? {
+          size: customPixels?.length || fallbackPattern.size,
+          pixels: customPixels?.length ? customPixels : fallbackPattern.pixels,
+          colors: colors?.length ? colors : fallbackPattern.colors
+        }
+      : pixelPatterns[type] ?? fallbackPattern
+
+  const finalColors = colors?.length ? colors : pattern.colors
+  const pixelSize = Math.max(1, Math.floor(size / pattern.size))
+
+  const renderPixel = (value: number, r: number, c: number) => {
+    if (!value) return null
+
     return (
       <div
-        key={`${rowIndex}-${colIndex}`}
+        key={`${r}-${c}`}
         className="absolute border border-black/30"
         style={{
-          left: colIndex * pixelSize,
-          top: rowIndex * pixelSize,
+          left: c * pixelSize,
+          top: r * pixelSize,
           width: pixelSize,
           height: pixelSize,
-          backgroundColor: color,
-          boxShadow: isEdge 
-            ? 'inset -1px -1px 0 rgba(0,0,0,0.3), inset 1px 1px 0 rgba(255,255,255,0.3)'
-            : 'inset 0 0 0 1px rgba(0,0,0,0.1)',
-          animation: animated && hover ? `pixel-glow 0.5s ease-in-out ${(rowIndex + colIndex) * 0.05}s` : 'none'
+          backgroundColor: finalColors[value - 1] || finalColors[0],
+          animation:
+            animated && hover
+              ? `pixel-glow 0.5s ease-in-out ${(r + c) * 0.05}s`
+              : 'none'
         }}
       />
     )
@@ -179,25 +186,11 @@ export default function PixelArt({
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
-      {/* Background grid */}
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage: `
-            linear-gradient(to right, rgba(0,0,0,0.1) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(0,0,0,0.1) 1px, transparent 1px)
-          `,
-          backgroundSize: `${pixelSize}px ${pixelSize}px`
-        }}
-      />
-      
-      {/* Pixels */}
-      {pattern.pixels.map((row, rowIndex) =>
-        row.map((pixel, colIndex) => renderPixel(pixel, rowIndex, colIndex))
+      {pattern.pixels.map((row, r) =>
+        row.map((px, c) => renderPixel(px, r, c))
       )}
 
-      {/* Outer border */}
-      <div className="absolute inset-0 border-2 border-black/50"></div>
+      <div className="absolute inset-0 border-2 border-black/50" />
     </div>
   )
 }
