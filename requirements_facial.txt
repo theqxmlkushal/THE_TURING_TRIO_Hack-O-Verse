@@ -1,0 +1,10 @@
+fastapi>=0.95.0
+uvicorn[standard]>=0.22.0
+python-dotenv>=1.0.0
+deepface>=0.0.75
+opencv-python-headless>=4.7.0
+Pillow>=10.0.0
+numpy>=1.24.0
+python-multipart>=0.0.6
+tensorflow>=2.12.0
+tf-keras>=3.0.0
