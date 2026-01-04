@@ -1,7 +1,8 @@
+// TextAnalysisModal.tsx - Updated to work with /analyze endpoint
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { X, Send, AlertTriangle, Heart, Brain, Shield, Phone, Volume2, VolumeX } from 'lucide-react'
+import { X, Send, AlertTriangle, Heart, Brain, Shield, Phone, Volume2, VolumeX, Download, Info, CheckCircle } from 'lucide-react'
 import MinecraftButton from '@/components/MinecraftButton'
 import ProgressBar from '@/components/ProgressBar'
 import { useSounds } from '@/lib/sounds'
@@ -13,18 +14,37 @@ interface TextAnalysisModalProps {
   onComplete: () => void
 }
 
+// Fallback data in case API fails
+const FALLBACK_RECOMMENDATIONS = [
+  "Practice mindfulness meditation for 5-10 minutes daily to reduce anxiety.",
+  "Maintain a consistent sleep schedule of 7-8 hours per night.",
+  "Talk to a trusted friend or family member about how you're feeling.",
+  "Engage in regular physical activity, even if it's just a short walk.",
+  "Limit social media use and focus on real-world connections."
+]
+
+const FALLBACK_HELPLINES = {
+  "Vandrevala Foundation": "9999666555",
+  "iCall": "+91-9152987821",
+  "AASRA": "91-9820466726",
+  "SNEHA": "044-24640050",
+  "National Mental Health Helpline": "08046110007",
+  "Roshni Trust": "040-66202000"
+}
+
 export default function TextAnalysisModal({ isOpen, onClose, onComplete }: TextAnalysisModalProps) {
   const [text, setText] = useState('')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [results, setResults] = useState<AnalysisResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [currentView, setCurrentView] = useState<'input' | 'results'>('input')
+  const [currentView, setCurrentView] = useState<'input' | 'loading' | 'results'>('input')
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [currentSpeechIndex, setCurrentSpeechIndex] = useState(0)
   const [speechBatch, setSpeechBatch] = useState<string[]>([])
   const [showTTSControls, setShowTTSControls] = useState(false)
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null)
   const [ttsAvailable, setTtsAvailable] = useState(false)
+  const [apiStatus, setApiStatus] = useState<'checking' | 'online' | 'offline'>('checking')
   const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null)
   const { play } = useSounds()
 
@@ -33,6 +53,23 @@ export default function TextAnalysisModal({ isOpen, onClose, onComplete }: TextA
   const maxChars = 5000
   const charProgress = (charCount / maxChars) * 100
   const isValid = charCount >= minChars && charCount <= maxChars
+
+  // Check API status on mount
+  useEffect(() => {
+    const checkAPI = async () => {
+      try {
+        await sentimentAPI.checkHealth()
+        setApiStatus('online')
+      } catch (err) {
+        console.warn('API is offline, using fallback mode')
+        setApiStatus('offline')
+      }
+    }
+    
+    if (isOpen) {
+      checkAPI()
+    }
+  }, [isOpen])
 
   // Load and select Indian female voice
   useEffect(() => {
@@ -54,7 +91,7 @@ export default function TextAnalysisModal({ isOpen, onClose, onComplete }: TextA
             voice.name.toLowerCase().includes('female') ||
             voice.name.toLowerCase().includes('woman') ||
             voice.name.toLowerCase().includes('samantha') ||
-            voice.name.toLowerCase().includes('zira') // Windows female voice
+            voice.name.toLowerCase().includes('zira')
           )
         }
         
@@ -69,10 +106,8 @@ export default function TextAnalysisModal({ isOpen, onClose, onComplete }: TextA
       }
     }
 
-    // Load voices when component mounts
     loadAndSelectVoice()
     
-    // Some browsers load voices asynchronously
     if ('speechSynthesis' in window) {
       window.speechSynthesis.onvoiceschanged = loadAndSelectVoice
     }
@@ -84,14 +119,13 @@ export default function TextAnalysisModal({ isOpen, onClose, onComplete }: TextA
     }
   }, [])
 
-  // Text-to-Speech functionality
+  // Initialize TTS
   const initializeTTS = (recommendations: string[]) => {
     if (!ttsAvailable || !selectedVoice) {
       console.warn('Text-to-speech not available')
       return
     }
 
-    // Split recommendations into batches (max 20 words per batch)
     const batches: string[] = []
     recommendations.forEach(rec => {
       const words = rec.split(' ')
@@ -101,7 +135,6 @@ export default function TextAnalysisModal({ isOpen, onClose, onComplete }: TextA
       }
     })
 
-    // Add intro and outro with friendly, supportive tone
     const intro = "Here are some personalized recommendations for your mental wellness."
     const outro = "Remember to be kind to yourself. Take what feels helpful for you."
     
@@ -115,25 +148,16 @@ export default function TextAnalysisModal({ isOpen, onClose, onComplete }: TextA
     window.speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(text)
     
-    // Use selected voice
     utterance.voice = selectedVoice
-    
-    // Adjust settings for natural Indian female voice
-    utterance.rate = 0.9  // Slightly slower for clarity
+    utterance.rate = 0.9
     utterance.pitch = selectedVoice.name.toLowerCase().includes('female') ? 1.1 : 1.0
     utterance.volume = 1.0
-    
-    // utterance.onstart = () => {
-    //   setIsSpeaking(true)
-    //   play('success')
-    // }
     
     utterance.onend = () => {
       setIsSpeaking(false)
       if (currentSpeechIndex < speechBatch.length - 1) {
         setCurrentSpeechIndex(prev => prev + 1)
       } else {
-        // Reset when finished
         setCurrentSpeechIndex(0)
       }
     }
@@ -161,11 +185,11 @@ export default function TextAnalysisModal({ isOpen, onClose, onComplete }: TextA
     } else {
       if (speechBatch.length > 0) {
         if (currentSpeechIndex === 0) {
-          // Start from beginning
           speakText(speechBatch[0])
+          setIsSpeaking(true)
         } else {
-          // Resume from current position
           speakText(speechBatch[currentSpeechIndex])
+          setIsSpeaking(true)
         }
       }
     }
@@ -198,14 +222,19 @@ export default function TextAnalysisModal({ isOpen, onClose, onComplete }: TextA
 
     setIsAnalyzing(true)
     setError(null)
+    setCurrentView('loading')
     play('game_start')
 
     try {
+      // Use the specific /analyze/text endpoint
       const response = await sentimentAPI.analyzeText({
         text,
         language: 'english',
         session_id: `session_${Date.now()}`
       })
+
+      // Store results for combined analysis
+      sessionStorage.setItem('textAnalysisResults', JSON.stringify({ text, ...response }))
 
       setResults(response)
       setCurrentView('results')
@@ -217,8 +246,54 @@ export default function TextAnalysisModal({ isOpen, onClose, onComplete }: TextA
 
     } catch (err) {
       console.error('Analysis error:', err)
-      setError(err instanceof Error ? err.message : 'Analysis failed. Please try again.')
-      play('error')
+      
+      // Fallback analysis when API fails
+      if (apiStatus === 'offline') {
+        // Create fallback response
+        const riskLevel = text.toLowerCase().includes('suicide') || text.toLowerCase().includes('kill myself') 
+          ? 'HIGH' 
+          : text.length > 100 
+          ? 'MEDIUM' 
+          : 'LOW'
+        
+        const riskScore = riskLevel === 'HIGH' ? 75 : riskLevel === 'MEDIUM' ? 45 : 20
+        
+        const fallbackResponse: AnalysisResponse = {
+          risk_level: riskLevel,
+          risk_score: riskScore,
+          confidence: 0.8,
+          sentiment_scores: {
+            overall: riskLevel === 'HIGH' ? 30 : riskLevel === 'MEDIUM' ? 50 : 70,
+            positive_ratio: riskLevel === 'HIGH' ? 0.3 : riskLevel === 'MEDIUM' ? 0.5 : 0.7,
+            negative_ratio: riskLevel === 'HIGH' ? 0.7 : riskLevel === 'MEDIUM' ? 0.5 : 0.3
+          },
+          detected_emotions: ['anxiety', 'stress'].slice(0, text.length > 50 ? 2 : 1),
+          keywords_found: ['text analysis'],
+          recommendations: FALLBACK_RECOMMENDATIONS.slice(0, 3),
+          next_step: riskLevel === 'HIGH' 
+            ? '🚨 Please consider reaching out to a mental health professional for support.'
+            : '✅ Continue with self-care practices and monitor your wellbeing.',
+          analysis_timestamp: new Date().toISOString(),
+          session_id: `session_${Date.now()}`,
+          model_used: 'Fallback Analysis (API Offline)',
+          warning_flags: riskLevel === 'HIGH' ? ['High risk detected'] : [],
+          mental_health_resources: {
+            emergency_helplines: FALLBACK_HELPLINES,
+            telemedicine_services: {},
+            government_resources: {},
+            regional_support: {}
+          },
+          context_notes: ['Using fallback analysis due to API connection issues.']
+        }
+        
+        setResults(fallbackResponse)
+        setCurrentView('results')
+        play('achievement')
+      } else {
+        setError(err instanceof Error ? err.message : 'Analysis failed. Please try again.')
+        setCurrentView('input')
+        play('error')
+      }
     } finally {
       setIsAnalyzing(false)
     }
@@ -263,9 +338,23 @@ export default function TextAnalysisModal({ isOpen, onClose, onComplete }: TextA
               <div className="w-10 h-10 bg-white border-2 border-black flex items-center justify-center">
                 <span className="text-2xl">📝</span>
               </div>
-              <h2 className="font-minecraft-bold text-xl text-white">
-                Text Based Sentiment Analysis
-              </h2>
+              <div>
+                <h2 className="font-minecraft-bold text-xl text-white">
+                  Text Based Sentiment Analysis
+                </h2>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className={`w-2 h-2 rounded-full ${
+                    apiStatus === 'online' ? 'bg-green-400' : 
+                    apiStatus === 'offline' ? 'bg-red-400' : 
+                    'bg-yellow-400'
+                  }`}></div>
+                  <span className="font-minecraft text-xs text-white/80">
+                    {apiStatus === 'online' ? 'API Online' : 
+                     apiStatus === 'offline' ? 'Using Fallback Mode' : 
+                     'Checking API...'}
+                  </span>
+                </div>
+              </div>
             </div>
             <button
               onClick={() => {
@@ -285,6 +374,25 @@ export default function TextAnalysisModal({ isOpen, onClose, onComplete }: TextA
           {currentView === 'input' ? (
             // Input View
             <div className="space-y-6">
+              {/* API Status Banner */}
+              {apiStatus === 'offline' && (
+                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border-4 border-mc-yellow p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-mc-yellow border-2 border-black">
+                      <Info className="w-5 h-5 text-black" />
+                    </div>
+                    <div>
+                      <h3 className="font-minecraft-bold text-lg text-yellow-800 mb-2">
+                        API Connection Issue
+                      </h3>
+                      <p className="text-sm text-yellow-700">
+                        Our AI analysis service is currently unavailable. You can still submit your text, and we'll provide basic analysis and support resources.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Instructions */}
               <div className="bg-gradient-to-r from-blue-50 to-blue-100 border-4 border-mc-blue p-4">
                 <div className="flex items-start gap-3">
@@ -369,6 +477,32 @@ export default function TextAnalysisModal({ isOpen, onClose, onComplete }: TextA
                 </MinecraftButton>
               </div>
             </div>
+          ) : currentView === 'loading' ? (
+            // Loading View
+            <div className="flex flex-col items-center justify-center py-12 space-y-6">
+              <div className="relative">
+                <div className="w-24 h-24 border-8 border-black border-t-mc-green border-r-mc-blue border-b-mc-brown border-l-mc-yellow rounded-full animate-spin"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-3xl">🤖</span>
+                </div>
+              </div>
+              <div className="text-center space-y-2">
+                <h3 className="font-minecraft-bold text-2xl text-gray-800">
+                  Analyzing Your Thoughts...
+                </h3>
+                <p className="text-gray-600">
+                  Our AI is processing your text to understand your emotional state
+                </p>
+                <div className="max-w-md mx-auto">
+                  <ProgressBar
+                    value={0}
+                    max={100}
+                    variant="experience"
+                    showLabel={false}
+                  />
+                </div>
+              </div>
+            </div>
           ) : (
             // Results View
             results && (
@@ -393,8 +527,6 @@ export default function TextAnalysisModal({ isOpen, onClose, onComplete }: TextA
                           {selectedVoice && (
                             <p className="text-xs text-gray-500 mt-1">
                               Voice: {selectedVoice.name}
-                              {selectedVoice.name.toLowerCase().includes('indian') && ' (Indian)'}
-                              {selectedVoice.name.toLowerCase().includes('female') && ' (Female)'}
                             </p>
                           )}
                         </div>
@@ -411,25 +543,6 @@ export default function TextAnalysisModal({ isOpen, onClose, onComplete }: TextA
                         <span className="text-sm text-gray-500 font-minecraft">
                           {currentSpeechIndex + 1}/{speechBatch.length}
                         </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* TTS Not Available Warning */}
-                {showTTSControls && !ttsAvailable && (
-                  <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border-4 border-mc-yellow p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-mc-yellow border-2 border-black">
-                        <VolumeX className="w-5 h-5 text-black" />
-                      </div>
-                      <div>
-                        <h4 className="font-minecraft-bold text-lg text-gray-800">
-                          Text-to-Speech Not Available
-                        </h4>
-                        <p className="text-sm text-gray-600">
-                          Your browser doesn't support text-to-speech. You can read the recommendations below.
-                        </p>
                       </div>
                     </div>
                   </div>
@@ -460,7 +573,8 @@ export default function TextAnalysisModal({ isOpen, onClose, onComplete }: TextA
                       />
                     </div>
                     <p className="text-sm text-gray-600">
-                      Confidence: {(results.confidence * 100).toFixed(1)}%
+                      Confidence: {(results.confidence * 100).toFixed(1)}% • 
+                      Model: {results.model_used}
                     </p>
                   </div>
                 </div>
@@ -480,7 +594,7 @@ export default function TextAnalysisModal({ isOpen, onClose, onComplete }: TextA
                           We're concerned about your wellbeing. Please reach out to professional help immediately.
                         </p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {results.mental_health_resources && results.mental_health_resources.emergency_helplines ? (
+                          {results.mental_health_resources?.emergency_helplines ? (
                             Object.entries(results.mental_health_resources.emergency_helplines)
                               .slice(0, 4)
                               .map(([name, number]) => (
@@ -498,9 +612,23 @@ export default function TextAnalysisModal({ isOpen, onClose, onComplete }: TextA
                                 </a>
                               ))
                           ) : (
-                            <div className="p-4 bg-yellow-50 border border-yellow-200">
-                              <p className="text-yellow-800">Emergency resources not available</p>
-                            </div>
+                            // Fallback emergency numbers
+                            Object.entries(FALLBACK_HELPLINES)
+                              .slice(0, 4)
+                              .map(([name, number]) => (
+                                <a
+                                  key={name}
+                                  href={`tel:${number}`}
+                                  onClick={() => play('click')}
+                                  className="flex items-center gap-2 p-3 bg-white border-2 border-mc-red hover:bg-red-50 transition-colors"
+                                >
+                                  <Phone className="w-4 h-4 text-mc-red" />
+                                  <div className="text-left">
+                                    <div className="font-minecraft text-sm text-gray-800">{name}</div>
+                                    <div className="font-minecraft-bold text-mc-red">{number}</div>
+                                  </div>
+                                </a>
+                              ))
                           )}
                         </div>
                       </div>
@@ -529,9 +657,12 @@ export default function TextAnalysisModal({ isOpen, onClose, onComplete }: TextA
                 )}
 
                 {/* Recommendations */}
-                {results.recommendations && (
+                {results.recommendations && results.recommendations.length > 0 && (
                   <div className="bg-white border-4 border-black p-4">
-                    <h4 className="font-minecraft-bold text-lg mb-3">📋 AI-Generated Recommendations</h4>
+                    <h4 className="font-minecraft-bold text-lg mb-3 flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-mc-green" />
+                      AI-Generated Recommendations
+                    </h4>
                     <ul className="space-y-2">
                       {results.recommendations.slice(0, 5).map((rec, idx) => (
                         <li key={idx} className="flex items-start gap-2 text-sm">
@@ -549,12 +680,29 @@ export default function TextAnalysisModal({ isOpen, onClose, onComplete }: TextA
                   <p className="text-sm whitespace-pre-line">{results.next_step}</p>
                 </div>
 
+                {/* Context Notes */}
+                {results.context_notes && results.context_notes.length > 0 && (
+                  <div className="bg-gray-50 border-4 border-gray-400 p-4">
+                    <h4 className="font-minecraft-bold text-lg mb-2">📝 Analysis Notes</h4>
+                    <ul className="space-y-1">
+                      {results.context_notes.map((note, idx) => (
+                        <li key={idx} className="text-sm text-gray-600 flex items-start gap-2">
+                          <div className="w-1 h-1 bg-gray-400 rounded-full mt-1.5 flex-shrink-0"></div>
+                          <span>{note}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 {/* Action Buttons */}
                 <div className="flex gap-4">
                   <MinecraftButton
                     onClick={handleComplete}
                     variant="success"
                     size="lg"
+                    icon={CheckCircle}
+                    iconPosition="right"
                     className="flex-1"
                   >
                     Complete Step 1 & Continue
@@ -567,7 +715,7 @@ export default function TextAnalysisModal({ isOpen, onClose, onComplete }: TextA
                     variant="secondary"
                     size="lg"
                   >
-                    Retry Analysis
+                    Analyze Again
                   </MinecraftButton>
                 </div>
               </div>

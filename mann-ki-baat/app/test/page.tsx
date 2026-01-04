@@ -1,13 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ArrowLeft, Shield, Clock, Lock, CheckCircle, HelpCircle } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import StepCard from '@/components/StepCard'
 import MinecraftButton from '@/components/MinecraftButton'
 import ProgressBar from '@/components/ProgressBar'
 import MinecraftModal from '@/components/MinecraftModal'
 import TextAnalysisModal from '@/components/TextAnalysisModal'
+import AudioAnalysisModal from '@/components/AudioAnalysisModal'
+import VideoAnalysisModal from '@/components/VideoAnalysisModal'
 import { useSounds } from '@/lib/sounds'
 
 type StepStatus = 'locked' | 'unlocked' | 'completed'
@@ -23,8 +26,11 @@ interface AssessmentStep {
 }
 
 export default function TestPage() {
+  const router = useRouter()
   const [showInfoModal, setShowInfoModal] = useState(false)
   const [showTextAnalysisModal, setShowTextAnalysisModal] = useState(false)
+  const [showAudioAnalysisModal, setShowAudioAnalysisModal] = useState(false)
+  const [showVideoAnalysisModal, setShowVideoAnalysisModal] = useState(false)
   const { play } = useSounds()
 
   // Initialize steps with state
@@ -55,18 +61,36 @@ export default function TestPage() {
     }
   ])
 
+  // Check if all steps are completed
+  const allCompleted = assessmentSteps.every(step => step.status === 'completed')
+  const completedSteps = assessmentSteps.filter(step => step.status === 'completed').length
+  const progress = completedSteps / 3 * 100
+
+  // Redirect to risk-score page when all steps are completed
+  useEffect(() => {
+    if (allCompleted) {
+      // Small delay to show completion animation
+      const timer = setTimeout(() => {
+        
+        // Store completion timestamp
+        sessionStorage.setItem('assessmentCompleted', Date.now().toString())
+        // Redirect to risk-score page
+        router.push('/risk-score')
+      }, 1500)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [allCompleted, play, router])
+
   const handleStepStart = (step: number) => {
     play('game_start')
     
     if (step === 1) {
-      // Open text analysis modal for step 1
       setShowTextAnalysisModal(true)
     } else if (step === 2) {
-      // Voice analysis (to be implemented)
-      alert(`Starting Voice Analysis...\n\nThis feature will be available soon!`)
+      setShowAudioAnalysisModal(true)
     } else if (step === 3) {
-      // Video analysis (to be implemented)
-      alert(`Starting Video Analysis...\n\nThis feature will be available soon!`)
+      setShowVideoAnalysisModal(true)
     }
   }
 
@@ -86,6 +110,59 @@ export default function TestPage() {
       }
       return updatedSteps
     })
+
+    // Store text analysis results in sessionStorage
+    const textResults = sessionStorage.getItem('textAnalysisResults')
+    if (textResults) {
+      localStorage.setItem('step1TextResults', textResults)
+    }
+  }
+
+  const handleAudioAnalysisComplete = () => {
+    play('achievement')
+    
+    // Mark step 2 as completed and unlock step 3
+    setAssessmentSteps(prevSteps => {
+      const updatedSteps = [...prevSteps]
+      updatedSteps[1] = {
+        ...updatedSteps[1],
+        status: 'completed'
+      }
+      updatedSteps[2] = {
+        ...updatedSteps[2],
+        status: 'unlocked'
+      }
+      return updatedSteps
+    })
+
+    // Store audio analysis results in sessionStorage
+    const audioResults = sessionStorage.getItem('audioAnalysisResults')
+    if (audioResults) {
+      localStorage.setItem('step2AudioResults', audioResults)
+    }
+  }
+
+  const handleVideoAnalysisComplete = () => {
+    play('achievement')
+    
+    // Mark step 3 as completed
+    setAssessmentSteps(prevSteps => {
+      const updatedSteps = [...prevSteps]
+      updatedSteps[2] = {
+        ...updatedSteps[2],
+        status: 'completed'
+      }
+      return updatedSteps
+    })
+
+    // Store video analysis results in sessionStorage
+    const videoResults = sessionStorage.getItem('videoAnalysisResults')
+    if (videoResults) {
+      localStorage.setItem('step3VideoResults', videoResults)
+    }
+
+    // Show completion message before redirect
+    play('success')
   }
 
   const handleBeginAll = () => {
@@ -96,12 +173,13 @@ export default function TestPage() {
   const handleConfirmStart = () => {
     play('game_start')
     setShowInfoModal(false)
-    
-    // Start the first step
     setShowTextAnalysisModal(true)
   }
 
-  const progress = assessmentSteps.filter(step => step.status === 'completed').length / 3 * 100
+  const handleViewRiskScore = () => {
+    play('click')
+    router.push('/risk-score')
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-4">
@@ -151,7 +229,7 @@ export default function TestPage() {
               <span className="font-minecraft text-gray-700">Assessment Progress</span>
             </div>
             <span className="font-minecraft-bold text-mc-green text-lg">
-              {Math.round(progress)}%
+              {completedSteps}/3 Complete ({Math.round(progress)}%)
             </span>
           </div>
           
@@ -162,6 +240,17 @@ export default function TestPage() {
             size="lg"
             showLabel={false}
           />
+
+          {allCompleted && (
+            <div className="mt-4 bg-gradient-to-r from-mc-green/20 to-mc-blue/20 border-2 border-mc-green p-4 animate-pulse">
+              <div className="flex items-center justify-center gap-2">
+                <CheckCircle className="w-5 h-5 text-mc-green animate-bounce" />
+                <span className="font-minecraft-bold text-mc-green">
+                  🎉 All Steps Completed! Redirecting to Risk Score Analysis...
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -310,13 +399,27 @@ export default function TestPage() {
             size="lg"
             icon={CheckCircle}
             iconPosition="right"
+            disabled={allCompleted}
           >
-            Begin Complete Assessment Journey
+            {allCompleted ? '✅ Assessment Complete!' : 'Begin Complete Assessment Journey'}
           </MinecraftButton>
         </div>
         <p className="text-gray-500 text-sm">
           All data is processed securely and anonymously. Your journey is private.
         </p>
+
+        {allCompleted && (
+          <div className="mt-6">
+            <MinecraftButton
+              onClick={handleViewRiskScore}
+              variant="primary"
+              size="lg"
+              className="animate-pulse"
+            >
+              View Your Risk Score Analysis →
+            </MinecraftButton>
+          </div>
+        )}
       </div>
 
       {/* Info Modal */}
@@ -350,7 +453,7 @@ export default function TestPage() {
                 <span className="font-minecraft-bold text-white text-xs">1</span>
               </div>
               <p className="text-gray-700 text-sm">
-                <span className="font-semibold">Text Analysis:</span> Share your thoughts through writing
+                <span className="font-semibold">Text Analysis:</span> Share your thoughts through writing (5-7 min)
               </p>
             </div>
             
@@ -359,7 +462,7 @@ export default function TestPage() {
                 <span className="font-minecraft-bold text-white text-xs">2</span>
               </div>
               <p className="text-gray-700 text-sm">
-                <span className="font-semibold">Voice Analysis:</span> Speak about your feelings
+                <span className="font-semibold">Audio Analysis:</span> Upload audio recording of your voice (8-10 min)
               </p>
             </div>
             
@@ -368,24 +471,38 @@ export default function TestPage() {
                 <span className="font-minecraft-bold text-white text-xs">3</span>
               </div>
               <p className="text-gray-700 text-sm">
-                <span className="font-semibold">Video Analysis:</span> Optional comprehensive assessment
+                <span className="font-semibold">Video Analysis:</span> Upload video for facial emotion detection (10-12 min)
               </p>
             </div>
           </div>
           
           <div className="pt-4 border-t border-gray-200">
             <p className="text-gray-500 text-sm text-center">
-              Total estimated time: 25-30 minutes
+              Total estimated time: 25-30 minutes • Complete at your own pace
             </p>
           </div>
         </div>
       </MinecraftModal>
 
-      {/* Text Analysis Modal */}
+      {/* Text Analysis Modal - Step 1 */}
       <TextAnalysisModal
         isOpen={showTextAnalysisModal}
         onClose={() => setShowTextAnalysisModal(false)}
         onComplete={handleTextAnalysisComplete}
+      />
+
+      {/* Audio Analysis Modal - Step 2 */}
+      <AudioAnalysisModal
+        isOpen={showAudioAnalysisModal}
+        onClose={() => setShowAudioAnalysisModal(false)}
+        onComplete={handleAudioAnalysisComplete}
+      />
+
+      {/* Video Analysis Modal - Step 3 */}
+      <VideoAnalysisModal
+        isOpen={showVideoAnalysisModal}
+        onClose={() => setShowVideoAnalysisModal(false)}
+        onComplete={handleVideoAnalysisComplete}
       />
     </div>
   )

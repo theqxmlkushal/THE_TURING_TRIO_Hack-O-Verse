@@ -1,0 +1,51 @@
+# requirements.txt - Universal Requirements for Python 3.12
+# Works on Windows, Linux, and macOS
+
+# ==================== Core Web Framework ====================
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# ==================== Environment & Configuration ====================
+python-dotenv==1.0.0
+
+# ==================== HTTP & API Clients ====================
+requests==2.31.0
+httpx==0.26.0
+
+# ==================== Hugging Face AI Models ====================
+huggingface-hub==0.20.2
+transformers==4.36.2
+# PyTorch - Use compatible version for your platform
+torch>=2.2.0
+# Tokenizers - Will install pre-built wheel
+tokenizers>=0.15.0
+
+# ==================== Audio Processing ====================
+librosa==0.10.1
+soundfile==0.12.1
+pydub==0.25.1
+numpy==1.26.3
+scipy==1.11.4
+
+# ==================== Video Processing ====================
+opencv-python==4.9.0.80
+mediapipe==0.10.13
+Pillow==10.2.0
+
+# ==================== Google Gemini AI ====================
+google-generativeai==0.3.2
+google-auth==2.27.0
+
+# ==================== Utilities ====================
+colorlog==6.8.0
+
+# ==================== Testing (Optional) ====================
+pytest==7.4.3
+pytest-asyncio==0.23.3
+
+# ==================== Production Server (Optional) ====================
+# Gunicorn for Linux/Mac only
+gunicorn==21.2.0; sys_platform != 'win32'
