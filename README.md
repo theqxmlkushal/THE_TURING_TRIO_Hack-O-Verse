@@ -1,3 +1,8 @@
+# THE_TURING_TRIO_Hack-O-Verse
+The Turing Trio is team of Three AIML Enthusiasts focused on high-precision engineering and neural innovation. Inspired by the pioneers of computation, we solve complex problems through optimized algorithms and deep learning architectures.
+
+---
+
 # Video Emotion Recognition Backend
 
 A FastAPI backend that analyzes facial emotions in videos using MediaPipe for face detection and a Fine-tuned Vision Transformer (ViT) for emotion classification.
