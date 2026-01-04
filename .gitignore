@@ -1,0 +1,18 @@
+# Virtual environment
+venv/
+.env/
+# Secrets
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+
+# Large model files
+*.pt
+*.pth
+*.h5
+*.onnx
