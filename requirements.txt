@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+python-multipart
+opencv-python
+mediapipe
+transformers
+torch
+pillow
+numpy<2.0.0
+protobuf<4.0.0
